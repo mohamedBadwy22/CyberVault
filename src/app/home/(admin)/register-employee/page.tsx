@@ -23,7 +23,7 @@ export default function page() {
         today.setHours(0, 0, 0, 0);
         return userDate - today < -568080000000;
       }, "You Must Be Older Than 18"),
-    phoneNumber: zod
+    phone: zod
       .string()
       .regex(/^(\+2)?01[0125][0-9]{8}$/, "Invalid phone number"),
     gender: zod.enum(["male", "female"], "Gender is required"),
@@ -45,7 +45,7 @@ export default function page() {
       name: "",
       email: "",
       dateOfBirth: "",
-      phoneNumber: "",
+      phone: "",
       region: "",
     },
     resolver: zodResolver(registerEmployeeSchema),
@@ -64,13 +64,13 @@ export default function page() {
         data: {
           name: data.name,
           email: data.email,
-          phone: data.phoneNumber,
+          phone: data.phone,
           dateOfBirth: data.dateOfBirth,
           gender: data.gender,
           department: {
             departmentName: data.departmentName,
-            region: data.region,
-            role: data.role,
+            departmentRegion: data.region,
+            departmentRole: data.role,
           },
         },
         whoWeAdd: "employee",

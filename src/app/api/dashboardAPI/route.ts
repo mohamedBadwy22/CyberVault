@@ -1,33 +1,54 @@
-import getMyToken from "@/src/utilities/getMyToken";
 import { NextResponse } from "next/server";
+import { backendFetch, apiErrorResponse } from "@/src/lib/backendClient";
+import { AdminRecord } from "@/src/types/types";
 
+/**
+ * POST /api/dashboardAPI
+ * Proxies → GET /api/v1/users
+ *
+ * Backend returns paginated list of users.
+ * Maps to AdminRecord type.
+ */
 export async function POST(request: Request) {
+  try {
+    const { page, filter } = await request.json();
 
-    let { page , filter} = await request.json();
-    const token = await getMyToken();
-    let ok = false;
-    let finished = false;
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: "10",
+      ...(filter !== "All" && { role: filter }),
+    });
 
-    filter === 'employee' ? filter = 'moderator' : filter = filter;
-    const req = await fetch(`https://dummyjson.com/users${filter !== "All" ? `/filter?key=role&value=${filter}&` : '?'}limit=10&skip=${(page - 1) * 10}`,{
-        method:'GET'
-    })
-    const payload = await req.json();
-    const data = payload.users.map((user: any) => ({
-        name: user.firstName + " " + user.lastName,
-        role: user.role === "moderator" ? "employee" : user.role,
-        id: user.id,
-        email: user.email,
-        accountNumber: user.role !== "user" ? null : user.bank.iban,
-    }));
-    if(payload.message) {
-        ok = false;
-    } else {
-        ok = true;
-        if (payload.users.length === 0) {
-            finished = true
-            ok = false;
-        }
+    const { data, pagination } = await backendFetch<{
+      id: number;
+      bankUserId: string;
+      name: string;
+      email: string;
+      role: string;
+      account?: { accountNumber: string };
+    }[]>(`/users?${params.toString()}`);
+
+    if (!data || data.length === 0) {
+      return NextResponse.json({ ok: false, finished: true, data: [] });
     }
-    return NextResponse.json({ data, ok, finished });
+
+    const adminRecords: AdminRecord[] = data.map((user) => ({
+      name: user.name,
+      role: user.role as "admin" | "employee" | "user",
+      id: user.bankUserId, // Map bankUserId to the display ID
+      email: user.email,
+      accountNumber: user.account?.accountNumber || null,
+    }));
+
+    const isLastPage = pagination
+      ? page >= pagination.pages
+      : data.length < 10;
+
+    return NextResponse.json({ ok: true, data: adminRecords, finished: isLastPage });
+  } catch (err) {
+    return NextResponse.json(
+      { ok: false, finished: true, error: apiErrorResponse(err).error },
+      { status: 400 },
+    );
+  }
 }

@@ -1,35 +1,26 @@
-import getMyToken from "@/src/utilities/getMyToken";
 import { NextResponse } from "next/server";
+import { backendFetch, apiErrorResponse } from "@/src/lib/backendClient";
 
+/**
+ * POST /api/deleteAPI
+ * Proxies → 
+ *   DELETE /api/v1/users/:id
+ *   DELETE /api/v1/employees/:id
+ *
+ * Deletes a user or employee by their ID.
+ */
 export async function POST(request: Request) {
-
+  try {
     const { whoWeDelete, id } = await request.json();
-    const token = await getMyToken();
-    let accountData = null;
 
-    if (whoWeDelete === 'user') {
-        const res = await fetch(`https://69e803092f51b534be5fb1fc.mockapi.io/mock/user/AccountData/${id}`, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json',
-            'token': `${token}`,
-        },
+    const endpoint = whoWeDelete === "employee" ? `/employees/${id}` : `/users/${id}`;
+
+    const { data } = await backendFetch(endpoint, {
+      method: "DELETE",
     });
-    accountData = await res.json();
-    }
 
-    const res = await fetch(`https://69e803092f51b534be5fb1fc.mockapi.io/mock/user/profileData/${id}`, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json',
-            'token': `${token}`,
-        },
-    });
-    const data = await res.json();
-    
-
-    if (data !== 'Not found') {
-        return NextResponse.json({ ok: true , data: { accountData, profileData: data } });
-    }
-    return NextResponse.json({ ok: false });
+    return NextResponse.json({ ok: true, data });
+  } catch (err) {
+    return NextResponse.json({ ok: false, error: apiErrorResponse(err).error }, { status: 400 });
+  }
 }

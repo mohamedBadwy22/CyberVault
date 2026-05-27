@@ -6,28 +6,35 @@ interface AppUserProfile {
 	name?: string | null
 	email?: string | null
 	role?: string
+	bankUserId?: string
+	mustChangePassword?: boolean
 	[key: string]: unknown
 }
 
 declare module "next-auth" {
 	interface User extends DefaultUser {
 		id?: string
+		/** Raw access token returned by the backend — stored in JWT only, never in session. */
 		accessToken?: string
 		refreshToken?: string
 		user?: AppUserProfile
+		mustChangePassword?: boolean
 	}
 
 	interface Session {
+		/** Public user profile. accessToken is intentionally excluded to prevent client exposure. */
 		user: AppUserProfile & DefaultSession["user"]
-		accessToken?: string
 	}
 }
 
 declare module "next-auth/jwt" {
 	interface JWT extends DefaultJWT {
-		accessToken?: string
+		/** Encrypted access token — server-side only. Never forward this to the session object. */
+		token?: string
 		user?: AppUserProfile
+		mustChangePassword?: boolean
 	}
 }
 
 export {}
+

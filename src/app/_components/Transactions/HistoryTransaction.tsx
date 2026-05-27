@@ -6,11 +6,11 @@ import TableSection from "../TableSection/TableSection";
 
 const historyColumns: TableColumn[] = [
   {
-    key: "transactionId",
+    key: "id",
     label: "Transaction ID",
     cellClassName: "font-medium text-gray-900",
   },
-  { key: "date", label: "Date" },
+  { key: "createdAt", label: "Date" },
   { key: "type", label: "Type" },
   { key: "amount", label: "Amount", cellClassName: "whitespace-nowrap" },
   {
@@ -20,6 +20,13 @@ const historyColumns: TableColumn[] = [
   },
 ];
 
+// Maps UI filter labels (Title Case) → backend `type` query param (lowercase per spec §8.4)
+const FILTER_MAP: Record<string, string> = {
+  All: "All",
+  Debit: "debit",
+  Credit: "credit",
+  Transfer: "transfer",
+};
 
 export default function HistoryTransaction() {
   const [statePreview, setStatePreview] = useState<TableState>("loading");
@@ -30,27 +37,24 @@ export default function HistoryTransaction() {
 
   useEffect(() => {
     setStatePreview("loading");
-    async function fetchData () {
-      const req = await fetch('/api/transactionsHistoryAPI',{
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ page , filter: filterValue , method : 'history' })
+    async function fetchData() {
+      const req = await fetch("/api/transactionsHistoryAPI", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ page, filter: FILTER_MAP[filterValue] ?? "All" }),
       });
       const payload = await req.json();
-      if(payload.ok) {
+      if (payload.ok) {
         setStatePreview("data");
         setTableRows(payload.data);
-      }
-      else {
-        setIsFinished(payload.finished);
+      } else {
+        setIsFinished(payload.finished ?? false);
         setStatePreview("empty");
       }
     }
-    
+
     fetchData();
-  }, [page, filterValue])
+  }, [page, filterValue]);
 
   return (
     <div className="space-y-4">

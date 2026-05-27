@@ -1,104 +1,68 @@
-import getMyToken from "@/src/utilities/getMyToken";
 import { NextResponse } from "next/server";
-import { jwtDecode } from "jwt-decode";
+import { backendFetch, apiErrorResponse } from "@/src/lib/backendClient";
 
+/**
+ * POST /api/transactionMethodsAPI
+ * Proxies →
+ *   POST /api/v1/transactions/credit   (method === 'credit')
+ *   POST /api/v1/transactions/debit    (method === 'debit')
+ *   POST /api/v1/transactions/transfer (method === 'transfer')
+ *
+ * CRITICAL FIX (Mismatch 9):
+ *   The previous implementation calculated balances client-side and issued two separate
+ *   PUT requests — a catastrophic banking anti-pattern with no atomicity.
+ *   This route now forwards the raw transaction intent to the backend.
+ *   All balance arithmetic, overdraft protection, currency checks, and race-condition
+ *   guards happen atomically on the backend inside a SERIALIZABLE SQL transaction.
+ *
+ * Backend spec §9 — Credit body:   { accountNumber, amount, description? }
+ * Backend spec §9 — Debit body:    { accountNumber, amount, description? }
+ * Backend spec §9 — Transfer body: { sourceAccountNumber, destinationAccountNumber, amount, description? }
+ *
+ * On 200: { transaction: { id, type, amount, currency, balanceAfter, createdAt } }
+ * On 400: INSUFFICIENT_FUNDS | CURRENCY_MISMATCH | SAME_ACCOUNT | VALIDATION_ERROR
+ * On 403: ACCOUNT_FROZEN
+ * On 404: ACCOUNT_NOT_FOUND
+ */
 export async function POST(request: Request) {
-  const { method, data, accountInfo } = await request.json();
-  const token = await getMyToken();
-  const { id } = jwtDecode(token) as any;
+  try {
+    const { method, data } = await request.json();
 
-  if (method === "transfer") {
-    if (
-      !data?.sourceAccountNumber ||
-      !data?.destinationAccountNumber ||
-      typeof data?.amount !== "number"
-    ) {
-      return NextResponse.json({ ok: false, message: "Invalid transfer data" });
+    let endpoint: string;
+
+    if (method === "credit") {
+      endpoint = "/transactions/credit";
+    } else if (method === "debit") {
+      endpoint = "/transactions/debit";
+    } else if (method === "transfer") {
+      endpoint = "/transactions/transfer";
+    } else {
+      return NextResponse.json(
+        { ok: false, error: { code: "VALIDATION_ERROR", message: "Invalid transaction method." } },
+        { status: 400 },
+      );
     }
 
-    if (data.sourceAccountNumber === data.destinationAccountNumber) {
-      return NextResponse.json({
-        ok: false,
-        message: "Destination account must be different",
-      });
-    }
+    const { data: transactionData } = await backendFetch<{
+      transaction: {
+        id: number;
+        type: string;
+        amount: number;
+        currency: string;
+        balanceAfter: number;
+        createdAt: string;
+      };
+    }>(endpoint, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
 
-    const destinationAccountReq = await fetch(
-      `https://69e803092f51b534be5fb1fc.mockapi.io/mock/user/AccountData?accountNumber=${encodeURIComponent(data.destinationAccountNumber)}`,
-      {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      },
+    return NextResponse.json({ ok: true, data: transactionData });
+  } catch (err) {
+    const errorBody = apiErrorResponse(err);
+    return NextResponse.json(
+      { ok: false, message: errorBody.error.message, error: errorBody.error },
+      { status: 400 },
     );
-    const destinationAccountPayload = await destinationAccountReq.json();
-    const destinationAccount = Array.isArray(destinationAccountPayload)
-      ? destinationAccountPayload[0]
-      : null;
-
-    if (!destinationAccount) {
-      return NextResponse.json({
-        ok: false,
-        message: "Destination account not found",
-      });
-    }
-
-    const sourceNextBalance = accountInfo.balance - data.amount;
-    const destinationNextBalance = destinationAccount.balance + data.amount;
-
-    const updateSourceReq = await fetch(
-      `https://69e803092f51b534be5fb1fc.mockapi.io/mock/user/AccountData/${accountInfo.id}`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ balance: sourceNextBalance }),
-      },
-    );
-    const updateSourcePayload = await updateSourceReq.json();
-
-    if (updateSourcePayload === "Not found") {
-      return NextResponse.json({ ok: false, message: "Account not found" });
-    }
-
-    const updateDestinationReq = await fetch(
-      `https://69e803092f51b534be5fb1fc.mockapi.io/mock/user/AccountData/${destinationAccount.id}`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ balance: destinationNextBalance }),
-      },
-    );
-    const updateDestinationPayload = await updateDestinationReq.json();
-
-    if (updateDestinationPayload === "Not found") {
-      return NextResponse.json({
-        ok: false,
-        message: "Destination account not found",
-      });
-    }
-
-    return NextResponse.json({ ok: true, message: "Transaction successful" });
   }
-
-  
-  const nextBalance =
-    method === "credit"
-      ? accountInfo.balance + data.amount
-      : accountInfo.balance - data.amount;
-
-  const res = await fetch(
-    `https://69e803092f51b534be5fb1fc.mockapi.io/mock/user/AccountData/${id}`,
-    {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        balance: nextBalance,
-      }),
-    },
-  );
-  const response = await res.json();
-
-  if (response === "Not found") {
-    return NextResponse.json({ ok: false, message: "Account not found" });
-  }
-  return NextResponse.json({ ok: true, message: "Transaction successful" });
 }

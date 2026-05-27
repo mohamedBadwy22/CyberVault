@@ -12,11 +12,11 @@ const changePasswordSchema = zod
     currentPassword: zod
       .string()
       .min(8, { message: "Current password must be at least 8 characters" })
-      .max(20, { message: "Current password must be less than 20 characters" }),
-    //   .regex(
-    //     /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$ %^&*-]).{8,}$/,
-    //     "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
-    //   ),
+      .max(20, { message: "Current password must be less than 20 characters" })
+      .regex(
+        /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$ %^&*-]).{8,}$/,
+        "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
+      ),
     newPassword: zod
       .string()
       .min(8, { message: "New password must be at least 8 characters" })

@@ -1,33 +1,37 @@
-import getMyToken from "@/src/utilities/getMyToken";
 import { NextResponse } from "next/server";
+import { backendFetch, apiErrorResponse } from "@/src/lib/backendClient";
 
+/**
+ * POST /api/registerAPI
+ * Proxies →
+ *   POST /api/v1/users     (when whoWeAdd === 'user')
+ *   POST /api/v1/employees (when whoWeAdd === 'employee')
+ *
+ * Backend spec §8.3:
+ *   - User body:     { name, email, phone, dateOfBirth, gender, nationalId?, account: { accountType, currency, balance } }
+ *   - Employee body: { name, email, phone, dateOfBirth, gender, nationalId?, department: { departmentName, departmentRegion, departmentRole } }
+ *
+ * On 201: returns { user, account?, department?, temporaryPassword }
+ * On 409: EMAIL_EXISTS | NATIONAL_ID_EXISTS
+ */
 export async function POST(request: Request) {
-
+  try {
     const { data, whoWeAdd } = await request.json();
-    const token = await getMyToken();
 
-    
+    const endpoint = whoWeAdd === "employee" ? "/employees" : "/users";
 
-    const res = await fetch(`https://dummyjson.com/c/ed24-367f-4f41-b57b`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'token': `${token}`,
-        },
-        body: JSON.stringify({ data })
+    const { data: responseData } = await backendFetch<{
+      user: { id: number; bankUserId: string; name: string; role: string; email: string };
+      account?: { accountNumber: string; accountType: string; accountStatus: string; currency: string; balance: number };
+      department?: Record<string, string>;
+      temporaryPassword: string;
+    }>(endpoint, {
+      method: "POST",
+      body: JSON.stringify(data),
     });
-    const response = await res.json();
 
-    return NextResponse.json(response);
+    return NextResponse.json({ success: true, data: responseData }, { status: 201 });
+  } catch (err) {
+    return NextResponse.json(apiErrorResponse(err), { status: 400 });
+  }
 }
-
-// {
-//   "name": "Mohamed",
-//   "email": "m@gmail.com",
-//   "phone": "01012345678",
-//   "gender": "male",
-//   "account": {
-//     "accountType": "saving",
-//     "currency": "EGP"
-//   }
-// }

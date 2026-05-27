@@ -105,7 +105,7 @@ export default function PersonalData({ profileData, whoWeDelete }: any) {
               id="id"
               aria-describedby="helper-text-explanation"
               className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 "
-              value={`${profileData?.id}`}
+              value={`${profileData?.bankUserId}`}
               disabled
             />
           </div>
@@ -122,7 +122,7 @@ export default function PersonalData({ profileData, whoWeDelete }: any) {
               id="phone"
               aria-describedby="helper-text-explanation"
               className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 "
-              value={`${profileData?.phoneNumber}`}
+              value={`${profileData?.phone}`}
               disabled
             />
           </div>

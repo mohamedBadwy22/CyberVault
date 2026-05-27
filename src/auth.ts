@@ -1,65 +1,88 @@
-import { NextAuthOptions } from "next-auth"
-import Credentials from "next-auth/providers/credentials"
-import { jwtDecode } from "jwt-decode";
+import { NextAuthOptions } from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+
+const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:5000";
 
 export const authOption: NextAuthOptions = {
-    providers:[
-        Credentials({
-            name: "credentials",
-            credentials: {
-                userId: {},
-                password: {},
-            },
-            authorize: async (credentials) => {
-                    const res = await fetch('https://dummyjson.com/auth/login',{
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({username:credentials?.userId,
-                     password:credentials?.password,
-                    expiresInMins: 360,}
-                    ),
-                     credentials: 'include'
-                    })
-                    const payload = await res.json();      
-                    console.log('=================\n from auth.ts \n',payload);
-                                                      
-                    if (payload.accessToken) {
-                        // : {id: string}  , id : decodedToken.id
-                        //const decodedToken  = jwtDecode(payload.accessToken);
-                        const response = await fetch('https://dummyjson.com/auth/me',{
-                        method: 'GET',
-                        headers: {
-                            'Authorization' : `Bearer ${payload.accessToken}`,
-                        },
-                        credentials: 'include'
-                    })
-                    let {role} = await response.json();
-                    role === 'moderator' ? role = 'employee' : role = role;
-                        return {...payload , user: {role} };
-                    } else {
-                        return null;
-                    }
-                }
-        })
-    ],
-    pages:{
-        signIn: '/login'
-    },
-    callbacks:{
-    async jwt({ token, user }) {
-        if (user) {
-            token.token = user.accessToken;
-            token.refreshToken = user.refreshToken;
-            token.user = user.user;
+  providers: [
+    Credentials({
+      name: "credentials",
+      credentials: {
+        bankUserId: {},
+        password: {},
+      },
+      authorize: async (credentials) => {
+        const res = await fetch(`${BACKEND_URL}/api/v1/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          // `credentials: 'include'` forwards cookies — the backend will set
+          // the refreshToken HttpOnly cookie via Set-Cookie in the response.
+          credentials: "include",
+          body: JSON.stringify({
+            bankUserId: credentials?.bankUserId,
+            password: credentials?.password,
+          }),
+        });
+
+        const body = await res.json();
+
+        // Backend wraps all responses in { success, data } or { success, error }.
+        if (!body.success) {
+          // Return null to let NextAuth show a generic error.
+          // For lock-specific messaging, the LoginForm already handles it.
+          return null;
         }
-        return token
+
+        const { accessToken, mustChangePassword, user } = body.data as {
+          accessToken: string;
+          mustChangePassword: boolean;
+          user: {
+            id: number;
+            bankUserId: string;
+            name: string;
+            role: string;
+            email: string;
+          };
+        };
+
+        return {
+          // NextAuth User shape — we store the raw access token here so the
+          // JWT callback can pick it up. It is NEVER forwarded to the session.
+          id: String(user.id),
+          accessToken,
+          mustChangePassword,
+          user: {
+            id: String(user.id),
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            bankUserId: user.bankUserId,
+            mustChangePassword,
+          },
+        };
+      },
+    }),
+  ],
+  pages: {
+    signIn: "/login",
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        // Store the raw access token in the encrypted NextAuth JWT (server-side only).
+        // IMPORTANT: Do NOT forward `token.token` into the session callback.
+        token.token = user.accessToken;
+        token.mustChangePassword = user.mustChangePassword;
+        token.user = user.user;
+      }
+      return token;
     },
     async session({ session, token }) {
-        if (token.user) {
-            session.user = { ...session.user, ...token.user };
-        }
-        return session
-    }
-}}
+      // Only the user profile (no access token) is forwarded to the client session.
+      if (token.user) {
+        session.user = { ...session.user, ...token.user };
+      }
+      return session;
+    },
+  },
+};

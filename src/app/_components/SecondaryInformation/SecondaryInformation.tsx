@@ -19,7 +19,7 @@ export default function SecondaryInformation({ accountData, departmentData }: { 
               type="text"
               id={accountData ? "accountNumber" : "departmentName"}
               className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 "
-              value={`${accountData ? accountData?.accountNumber : departmentData?.name}`}
+              value={`${accountData ? accountData?.accountNumber : departmentData?.departmentName}`}
             />
           </div>
 
@@ -35,7 +35,7 @@ export default function SecondaryInformation({ accountData, departmentData }: { 
               id={accountData ? "balance" : "since"}
               aria-describedby="helper-text-explanation"
               className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 "
-              value={`${accountData ? accountData?.balance : departmentData?.since}`}
+              value={`${accountData ? accountData?.balance : departmentData?.departmentSince}`}
               disabled
             />
           </div>
@@ -52,7 +52,7 @@ export default function SecondaryInformation({ accountData, departmentData }: { 
               type="text"
               id={accountData ? "accountType" : "departmentRole"}
               className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 pe-10 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500  "
-              value={`${accountData ? accountData?.accountType : departmentData?.role}`}
+              value={`${accountData ? accountData?.accountType : departmentData?.departmentRole}`}
             />
           </div>
 
@@ -68,7 +68,7 @@ export default function SecondaryInformation({ accountData, departmentData }: { 
               id={accountData ? "accountStatus" : "departmentStatus"}
               aria-describedby="helper-text-explanation"
               className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 "
-              value={`${accountData ? accountData?.accountStatus : departmentData?.status}`}
+              value={`${accountData ? accountData?.accountStatus : departmentData?.departmentStatus}`}
               disabled
             />
           </div>
