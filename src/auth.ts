@@ -1,5 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import refreshAccessToken from "./utilities/getRefreshToken";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:5000";
 
@@ -68,13 +69,39 @@ export const authOption: NextAuthOptions = {
   },
   callbacks: {
     async jwt({ token, user }) {
+      // Initial sign-in
       if (user) {
-        // Store the raw access token in the encrypted NextAuth JWT (server-side only).
-        // IMPORTANT: Do NOT forward `token.token` into the session callback.
         token.token = user.accessToken;
         token.mustChangePassword = user.mustChangePassword;
         token.user = user.user;
+        
+        try {
+          const payload = JSON.parse(Buffer.from((user.accessToken as string).split('.')[1], 'base64').toString());
+          token.expiresAt = payload.exp * 1000;
+        } catch (e) {
+          token.expiresAt = Date.now() + 10 * 60 * 1000; // fallback to 10 mins
+        }
+        return token;
       }
+      
+      // Subsequent requests: check if token is close to expiration (e.g. within 30 seconds)
+      if (Date.now() > (token.expiresAt as number) - 30000) {
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          token.token = newToken;
+          try {
+            const payload = JSON.parse(Buffer.from(newToken.split('.')[1], 'base64').toString());
+            token.expiresAt = payload.exp * 1000;
+          } catch (e) {
+            token.expiresAt = Date.now() + 10 * 60 * 1000;
+          }
+          token.error = undefined;
+        } else {
+          // If refresh fails, keep the old token but mark it so the client knows it's broken
+          token.error = "RefreshAccessTokenError";
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {

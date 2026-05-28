@@ -33,6 +33,8 @@ declare module "next-auth/jwt" {
 		token?: string
 		user?: AppUserProfile
 		mustChangePassword?: boolean
+		expiresAt?: number
+		error?: string
 	}
 }
 
