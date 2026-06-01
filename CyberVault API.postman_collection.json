@@ -17,12 +17,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:5000/",
-              "protocol": "http",
+              "raw": "https://api.cybervault.systems/",
+              "protocol": "https",
               "host": [
-                "localhost"
+                "api",
+                "cybervault",
+                "systems"
               ],
-              "port": "5000",
               "path": [
                 ""
               ]
@@ -706,12 +707,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:5000/",
-              "protocol": "http",
+              "raw": "https://api.cybervault.systems/",
+              "protocol": "https",
               "host": [
-                "localhost"
+                "api",
+                "cybervault",
+                "systems"
               ],
-              "port": "5000",
               "path": [
                 ""
               ]
