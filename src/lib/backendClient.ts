@@ -1,4 +1,4 @@
-'use server';
+
 
 import getMyToken from '@/src/utilities/getMyToken';
 import refreshAccessToken from '@/src/utilities/getRefreshToken';
