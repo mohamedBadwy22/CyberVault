@@ -18,8 +18,8 @@ export default function Profile() {
           },
           method: "GET",
         });
-        const data = await res.json();
-        setProfileData(data);
+        const result = await res.json();
+        setProfileData(result.data);
       } finally {
         setIsLoading(false);
       }
