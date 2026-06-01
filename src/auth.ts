@@ -46,21 +46,11 @@ export const authOption: NextAuthOptions = {
           };
         };
 
-        const setCookieHeader = res.headers.get("set-cookie");
-        let refreshToken = "";
-        if (setCookieHeader) {
-          const match = setCookieHeader.match(/refreshToken=([^;]+)/);
-          if (match) {
-            refreshToken = match[1];
-          }
-        }
-
         return {
           // NextAuth User shape — we store the raw access token here so the
           // JWT callback can pick it up. It is NEVER forwarded to the session.
           id: String(user.id),
           accessToken,
-          refreshToken,
           mustChangePassword,
           user: {
             id: String(user.id),
@@ -82,7 +72,6 @@ export const authOption: NextAuthOptions = {
       // Initial sign-in
       if (user) {
         token.token = user.accessToken;
-        token.refreshToken = (user as any).refreshToken;
         token.mustChangePassword = user.mustChangePassword;
         token.user = user.user;
         
@@ -97,12 +86,11 @@ export const authOption: NextAuthOptions = {
       
       // Subsequent requests: check if token is close to expiration (e.g. within 30 seconds)
       if (Date.now() > (token.expiresAt as number) - 30000) {
-        const newToken = await refreshAccessToken(token.refreshToken as string);
+        const newToken = await refreshAccessToken();
         if (newToken) {
-          token.token = newToken.accessToken;
-          token.refreshToken = newToken.refreshToken || token.refreshToken;
+          token.token = newToken;
           try {
-            const payload = JSON.parse(Buffer.from(newToken.accessToken.split('.')[1], 'base64').toString());
+            const payload = JSON.parse(Buffer.from(newToken.split('.')[1], 'base64').toString());
             token.expiresAt = payload.exp * 1000;
           } catch (e) {
             token.expiresAt = Date.now() + 10 * 60 * 1000;
