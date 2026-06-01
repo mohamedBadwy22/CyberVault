@@ -97,12 +97,11 @@ export async function backendFetch<T = unknown>(
     body.error?.code === 'TOKEN_EXPIRED'
   ) {
     // refreshAccessToken() calls POST /auth/refresh.
-    // Next.js forwards the HttpOnly refreshToken cookie automatically.
-    const newToken = await refreshAccessToken();
+    const refreshResult = await refreshAccessToken();
 
-    if (newToken) {
+    if (refreshResult?.accessToken) {
       // Retry the original request with the fresh access token.
-      headers['Authorization'] = `Bearer ${newToken}`;
+      headers['Authorization'] = `Bearer ${refreshResult.accessToken}`;
       const retryRes = await fetch(`${BACKEND_URL}/api/v1${path}`, {
         ...options,
         credentials: 'include',
