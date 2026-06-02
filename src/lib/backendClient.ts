@@ -1,23 +1,32 @@
+import getMyToken from "@/src/utilities/getMyToken";
+import refreshAccessToken from "@/src/utilities/getRefreshToken";
 
-
-import getMyToken from '@/src/utilities/getMyToken';
-import refreshAccessToken from '@/src/utilities/getRefreshToken';
-
-const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:5000';
+// Backend spec §4: BACKEND_URL already includes /api/v1
+const BACKEND_URL = (
+  process.env.BACKEND_URL ?? "http://localhost:5000/api/v1"
+).replace(/\/+$/, "");
+const normalizePath = (path: string) => (path.startsWith("/") ? path : `/${path}`);
 
 /**
  * Typed error thrown when the backend returns { success: false, error: { code, message } }.
- * Consumers can check `err.code` for specific handling (e.g. ACCOUNT_LOCKED, MUST_CHANGE_PASSWORD).
+ *
+ * Backend spec §13.3 error codes handled by consumers:
+ *   INVALID_CREDENTIALS, ACCOUNT_LOCKED (includes remainingSeconds in details),
+ *   ACCOUNT_INACTIVE, ACCOUNT_FROZEN, TOKEN_EXPIRED, TOKEN_INVALID,
+ *   TOKEN_REUSE_DETECTED, MUST_CHANGE_PASSWORD, FORBIDDEN, USER_NOT_FOUND,
+ *   ACCOUNT_NOT_FOUND, EMAIL_EXISTS, NATIONAL_ID_EXISTS, INSUFFICIENT_FUNDS,
+ *   CURRENCY_MISMATCH, SAME_ACCOUNT, CANNOT_DELETE_ADMIN,
+ *   INVALID_CURRENT_PASSWORD, INTERNAL_ERROR, VALIDATION_ERROR
  */
 export class ApiError extends Error {
   constructor(
     public readonly code: string,
     message: string,
     public readonly httpStatus: number,
-    public readonly details?: unknown,
+    public readonly details?: unknown
   ) {
     super(message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
   }
 }
 
@@ -46,24 +55,21 @@ type BackendEnvelope<T> = BackendSuccessEnvelope<T> | BackendErrorEnvelope;
 /**
  * Central server-side fetch utility for all backend calls.
  *
- * - Automatically attaches the Bearer token from the NextAuth session.
- * - Forwards the `Cookie` header so the backend refreshToken HttpOnly cookie is sent.
- * - Unwraps the { success, data } envelope.
- * - On 401 TOKEN_EXPIRED: automatically calls POST /auth/refresh (forwarding the
- *   HttpOnly refreshToken cookie), then retries the original request once with the
- *   new access token. Transparent to all callers — no change needed at call sites.
- * - If the refresh itself fails (expired/revoked/reuse detected), throws the original
- *   TOKEN_EXPIRED error so the app can redirect the user to login.
- * - Throws ApiError on { success: false } with the backend's error code and message.
- * - Returns both `data` and optional `pagination`.
+ * - Automatically attaches the Bearer access token from the NextAuth session.
+ * - Forwards the Cookie header so the backend refreshToken HttpOnly cookie is sent.
+ * - Unwraps the { success, data } / { success, error } envelope (spec §8).
+ * - On 401 TOKEN_EXPIRED: silently calls POST /auth/refresh then retries once.
+ * - If refresh fails, throws the TOKEN_EXPIRED ApiError so the app can redirect to login.
+ * - Throws ApiError on any { success: false } with the backend's code and message.
+ * - Returns both `data` and optional `pagination` (spec §8, success with pagination).
  */
 export async function backendFetch<T = unknown>(
   path: string,
   options: RequestInit = {},
-  skipAuth = false,
-): Promise<{ data: T; pagination?: BackendSuccessEnvelope<T>['pagination'] }> {
+  skipAuth = false
+): Promise<{ data: T; pagination?: BackendSuccessEnvelope<T>["pagination"] }> {
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
   };
 
@@ -71,51 +77,49 @@ export async function backendFetch<T = unknown>(
     try {
       const token = await getMyToken();
       if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+        headers["Authorization"] = `Bearer ${token}`;
       }
     } catch {
-      // If token retrieval fails, proceed without auth; the backend will return 401.
+      // If token retrieval fails, proceed without auth — backend returns 401.
     }
   }
 
-  const res = await fetch(`${BACKEND_URL}/api/v1${path}`, {
+  const res = await fetch(`${BACKEND_URL}${normalizePath(path)}`, {
     ...options,
-    credentials: 'include',
+    credentials: "include",
     headers,
   });
 
   const body: BackendEnvelope<T> = await res.json();
 
-  // ── Token Refresh Intercept ───────────────────────────────────────────────
-  // When the backend returns 401 TOKEN_EXPIRED on an authenticated request,
-  // silently refresh the access token and retry the original request once.
+  // ── Transparent Token Refresh (spec §7.3) ────────────────────────────────
+  // When the backend returns 401 TOKEN_EXPIRED, silently rotate the access
+  // token via POST /auth/refresh and retry the original request once.
   if (
     !skipAuth &&
     res.status === 401 &&
-    'success' in body &&
-    body.success === false &&
-    body.error?.code === 'TOKEN_EXPIRED'
+    "success" in body &&
+    !body.success &&
+    (body as BackendErrorEnvelope).error?.code === "TOKEN_EXPIRED"
   ) {
-    // refreshAccessToken() calls POST /auth/refresh.
-    // Next.js forwards the HttpOnly refreshToken cookie automatically.
     const newToken = await refreshAccessToken();
 
     if (newToken) {
-      // Retry the original request with the fresh access token.
-      headers['Authorization'] = `Bearer ${newToken}`;
-      const retryRes = await fetch(`${BACKEND_URL}/api/v1${path}`, {
+      headers["Authorization"] = `Bearer ${newToken}`;
+      const retryRes = await fetch(`${BACKEND_URL}${normalizePath(path)}`, {
         ...options,
-        credentials: 'include',
+        credentials: "include",
         headers,
       });
       const retryBody: BackendEnvelope<T> = await retryRes.json();
 
-      if ('success' in retryBody && retryBody.success === false) {
+      if ("success" in retryBody && !retryBody.success) {
+        const err = retryBody as BackendErrorEnvelope;
         throw new ApiError(
-          retryBody.error.code,
-          retryBody.error.message,
+          err.error.code,
+          err.error.message,
           retryRes.status,
-          retryBody.error.details,
+          err.error.details
         );
       }
 
@@ -123,23 +127,24 @@ export async function backendFetch<T = unknown>(
       return { data: successRetry.data, pagination: successRetry.pagination };
     }
 
-    // Refresh failed (refresh token expired / revoked / reuse detected).
-    // Throw TOKEN_EXPIRED so the app can redirect the user to the login page.
+    // Refresh failed (expired / revoked / reuse detected) — surface error to caller.
+    const errBody = body as BackendErrorEnvelope;
     throw new ApiError(
-      body.error.code,
-      body.error.message,
+      errBody.error.code,
+      errBody.error.message,
       res.status,
-      body.error.details,
+      errBody.error.details
     );
   }
   // ─────────────────────────────────────────────────────────────────────────
 
-  if ('success' in body && body.success === false) {
+  if ("success" in body && !body.success) {
+    const errBody = body as BackendErrorEnvelope;
     throw new ApiError(
-      body.error.code,
-      body.error.message,
+      errBody.error.code,
+      errBody.error.message,
       res.status,
-      body.error.details,
+      errBody.error.details
     );
   }
 
@@ -149,8 +154,7 @@ export async function backendFetch<T = unknown>(
 
 /**
  * Converts an ApiError into a standardised Next.js Route Handler JSON response body.
- * Keeps the same { success, error } shape the backend uses, so client components
- * can parse errors uniformly regardless of which layer threw them.
+ * Preserves the same { success, error } shape the backend uses (spec §13.1).
  */
 export function apiErrorResponse(err: unknown): {
   success: false;
@@ -164,6 +168,6 @@ export function apiErrorResponse(err: unknown): {
   }
   return {
     success: false,
-    error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred.' },
+    error: { code: "INTERNAL_ERROR", message: "An unexpected error occurred." },
   };
 }

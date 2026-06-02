@@ -38,6 +38,7 @@ export default function Page() {
       if(payload.ok) {
         setStatePreview("data");
         setTableRows(payload.data);
+        setIsFinished(payload.finished);
       }
       else {
         setIsFinished(payload.finished);

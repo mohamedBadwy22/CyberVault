@@ -11,7 +11,7 @@ export default function page() {
   const registerEmployeeSchema = zod.object({
     name: zod
       .string()
-      .min(12, "Name is required")
+      .min(3, "Name must be at least 3 characters")
       .max(100, "Full Name must be less than 100 characters"),
     email: zod.email("Invalid email address"),
     dateOfBirth: zod
@@ -31,11 +31,11 @@ export default function page() {
       ["HR", "IT", "Finance", "Marketing & Customer Service"],
       "Department Name is required",
     ),
-    region: zod
+    departmentRegion: zod
       .string()
       .min(3, "Region must be at least 3 characters")
       .max(50, "Region must be less than 50 characters"),
-    role: zod.enum(["employee", "admin"], "Role is required"),
+    departmentRole: zod.enum(["employee", "admin"], "Role is required"),
   });
 
   type RegisterEmployeeFormValues = zod.infer<typeof registerEmployeeSchema>;
@@ -46,7 +46,7 @@ export default function page() {
       email: "",
       dateOfBirth: "",
       phone: "",
-      region: "",
+      departmentRegion: "",
     },
     resolver: zodResolver(registerEmployeeSchema),
   });
@@ -69,21 +69,21 @@ export default function page() {
           gender: data.gender,
           department: {
             departmentName: data.departmentName,
-            departmentRegion: data.region,
-            departmentRole: data.role,
+            departmentRegion: data.departmentRegion,
+            departmentRole: data.departmentRole,
           },
         },
         whoWeAdd: "employee",
       }),
     });
     const response = await res.json();
-    if (response) {
+    if (response.ok) {
       setIsLoading(false);
       form.reset();
       toast.success("Employee Registered Successfully");
     } else {
       setIsLoading(false);
-      toast.error("Failed to Register Employee");
+      toast.error(response.message || "Failed to Register Employee");
     }
   }
 

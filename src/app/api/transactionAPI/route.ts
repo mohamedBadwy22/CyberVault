@@ -30,19 +30,38 @@ export async function POST(request: Request) {
       if (!data.account) {
         return NextResponse.json({ ok: false });
       }
-      return NextResponse.json({ data: [data.account], ok: true });
+      return NextResponse.json({ data: data.account, ok: true });
     }
 
-    // Look up a specific account by account number
-    const { data } = await backendFetch<{
-      id: number;
-      accountNumber: string;
-      currency: string;
-      accountStatus: string;
-      owner: { name: string; bankUserId: string };
-    }>(`/accounts/lookup?accountNumber=${encodeURIComponent(searchParam)}`);
+    // Look up user by bankUserId to securely retrieve account info and balance
+    const params = new URLSearchParams({
+      bankUserId: searchParam.trim(),
+      limit: "1",
+      page: "1",
+    });
+    const { data: users } = await backendFetch<{ id: number; bankUserId: string }[]>(
+      `/users?${params.toString()}`
+    );
 
-    return NextResponse.json({ data: [data], ok: true });
+    if (!users || users.length === 0) {
+      return NextResponse.json({ ok: false, error: { code: "USER_NOT_FOUND", message: "User not found." } });
+    }
+
+    const { data: userDetail } = await backendFetch<{
+      account: {
+        accountNumber: string;
+        accountType: string;
+        currency: string;
+        balance: number;
+        accountStatus: string;
+      } | null;
+    }>(`/users/${users[0].id}`);
+
+    if (!userDetail.account) {
+      return NextResponse.json({ ok: false, error: { code: "ACCOUNT_NOT_FOUND", message: "User does not have an account." } });
+    }
+
+    return NextResponse.json({ data: userDetail.account, ok: true });
   } catch (err) {
     return NextResponse.json({ ok: false, error: apiErrorResponse(err).error });
   }

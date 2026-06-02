@@ -15,6 +15,7 @@ export default function TransactionsPage() {
   const { searchResult } = useContext(SearchResult);
   const { data: session , status} = useSession();
   const router = useRouter();
+
   if (searchResult === "" && session?.user?.role !== "user" && status !== "loading") {
     router.push("/not-found");
   }

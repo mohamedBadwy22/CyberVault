@@ -11,7 +11,7 @@ export default function page() {
   const registerUserSchema = zod.object({
     name: zod
       .string()
-      .min(12, "Name is required")
+      .min(3, "Name must be at least 3 characters")
       .max(100, "Full Name must be less than 100 characters"),
     email: zod.email("Invalid email address"),
     dateOfBirth: zod
@@ -73,13 +73,13 @@ export default function page() {
       }),
     });
     const response = await res.json();
-    if (response) {
+    if (response.ok) {
       setIsLoading(false);
       form.reset();
       toast.success("User Registered Successfully");
     } else {
       setIsLoading(false);
-      toast.error("Failed to Register User");
+      toast.error(response.message || "Failed to Register User");
     }
   }
 

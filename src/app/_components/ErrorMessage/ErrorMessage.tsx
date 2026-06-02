@@ -1,4 +1,4 @@
-export default function ErrorMessage() {
+export default function ErrorMessage({ text = "Internal Server Error." }: { text?: string }) {
   return (
     <>
       <section className="container mx-auto px-4 py-8">
@@ -8,7 +8,7 @@ export default function ErrorMessage() {
               Error
             </h2>
             <p className="mb-4 text-3xl tracking-tight font-bold text-gray-900 md:text-4xl ">
-              Internal Server Error.
+              {text}
             </p>
             <p className="mb-4 text-lg font-light text-gray-500 dark:text-gray-400">
               Please Try Again Later.

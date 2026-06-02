@@ -21,6 +21,7 @@ export default function Management({
   const [accountData, setAccountData] = useState<accountDataType | null>(null);
   const [departmentData, setDepartmentData] = useState<departmentDataType | null>(null);
   const [profileData, setProfileData] = useState<profileDataType | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string>("Internal Server Error.");
 
   useEffect(() => {
     async function fetchData() {
@@ -42,6 +43,7 @@ export default function Management({
       } else {
         setIsLoading(false);
         setIsFound(false);
+        setErrorMessage(response.error?.message || "Internal Server Error.");
       }
     }
 
@@ -61,7 +63,9 @@ export default function Management({
           <SecondaryInformation accountData={accountData!} departmentData={departmentData!} /> 
         </div>
       ) : (
-        <ErrorMessage />
+        <div className="text-center text-xl md:text-2xl rounded-full w-1/2 mx-auto my-10 py-10 bg-white shadow-sm border border-gray-200 text-gray-500">
+          No results found.
+        </div>
       )}
     </>
   );
