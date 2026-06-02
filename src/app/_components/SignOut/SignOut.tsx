@@ -6,11 +6,16 @@ export default function SignOut() {
   return (
     <>
       <div
-        onClick={() =>
-          signOut({
+        onClick={async () => {
+          try {
+            await fetch("/api/logoutAPI", { method: "POST" });
+          } catch (e) {
+            console.error("Failed to call backend logout", e);
+          }
+          await signOut({
             callbackUrl: "/",
-          })
-        }
+          });
+        }}
         className="bg-[#FEECEC] max-h-fit m-4 rounded-lg p-6 shadow-2xl min-w-xs cursor-pointer hover:bg-[#FCD5D5] transition-colors duration-100"
       >
         <p className="text-xl font-semibold mb-4 flex justify-center">

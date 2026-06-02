@@ -62,7 +62,7 @@ export default function Delete({
     <>
       <button
         onClick={() => setMakingSure(true)}
-        className="col-span-2 flex justify-center items-center px-4 py-2.5 text-base font-medium text-center text-white cursor-pointer bg-red-600 rounded-lg hover:bg-red-700 focus:ring-4 focus:ring-red-300 transition-colors duration-200"
+        className="w-full flex justify-center items-center px-4 py-2.5 text-base font-medium text-center text-white cursor-pointer bg-red-600 rounded-lg hover:bg-red-700 focus:ring-4 focus:ring-red-300 transition-colors duration-200"
       >
         <Trash className="mx-1.5" />
         Delete

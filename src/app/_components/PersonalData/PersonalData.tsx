@@ -1,5 +1,6 @@
 import Edit from "../Edit/Edit";
 import Delete from "../Delete/Delete";
+import Unlock from "../Unlock/Unlock";
 
 export default function PersonalData({ profileData, whoWeDelete }: any) {
   return (
@@ -127,12 +128,17 @@ export default function PersonalData({ profileData, whoWeDelete }: any) {
             />
           </div>
 
-          {whoWeDelete ? (
-            <Delete whoWeDelete={whoWeDelete} id={profileData?.id} />
-          ) : (
-            <></>
-          )}
-          <Edit />
+          <div className="col-span-2 flex flex-col md:flex-row justify-between gap-4 w-full mt-4">
+            {whoWeDelete ? (
+              <>
+                <Delete whoWeDelete={whoWeDelete} id={profileData?.id} />
+                <Unlock id={profileData?.id} />
+              </>
+            ) : (
+              <></>
+            )}
+            <Edit />
+          </div>
         </div>
       </div>
     </>
