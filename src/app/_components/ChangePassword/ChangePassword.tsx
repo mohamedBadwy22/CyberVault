@@ -6,6 +6,9 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast, ToastContainer } from "react-toastify";
 import * as zod from "zod";
+import { useSession, signOut, signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { updatePasswordAction } from "@/src/app/change-password/actions";
 
 const changePasswordSchema = zod
   .object({
@@ -47,6 +50,9 @@ export default function ChangePassword() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const { data: session, update } = useSession();
+  const router = useRouter();
+
   const form = useForm<ChangePasswordFormValues>({
     defaultValues: {
       currentPassword: "",
@@ -60,24 +66,34 @@ export default function ChangePassword() {
 
   async function onSubmit(data: ChangePasswordFormValues) {
     setIsLoading(true);
-    const response = await fetch("/api/changePasswordAPI", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        currentPassword: data.currentPassword,
-        newPassword: data.newPassword,
-      }),
-    });
+    
+    // Call server action to hide API endpoint from inspect
+    const formData = new FormData();
+    formData.append("currentPassword", data.currentPassword);
+    formData.append("newPassword", data.newPassword);
+    
+    const response = await updatePasswordAction(formData);
 
-    const payload = await response.json();
-    if (payload?.ok) {
-        toast.success("Password updated successfully");
-        reset();
+    if (response.success) {
+      toast.success(response.message || "Password updated successfully");
+      reset();
+      
+      // The backend invalidates our tokens upon password change.
+      // We must transparently re-login to get a fresh access & refresh token.
+      const bankUserId = session?.user?.bankUserId;
+      if (bankUserId) {
+        await signIn("credentials", {
+          bankUserId: bankUserId,
+          password: data.newPassword,
+          redirect: false,
+        });
+      }
+
+      router.push("/home");
     } else {
-        toast.error(payload.message || "Failed to change password");
+      toast.error(response.error || "Failed to change password");
     }
+    
     setIsLoading(false);
   }
 
@@ -88,7 +104,7 @@ export default function ChangePassword() {
           Change Password
         </h2>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" id="changePasswordForm" action="#" method="POST">
           <div className="relative">
             <label
               htmlFor="currentPassword"
@@ -173,16 +189,25 @@ export default function ChangePassword() {
             </span>
           </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full rounded-lg bg-blue-800 px-5 py-2.5 text-sm font-medium text-black hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 disabled:cursor-not-allowed disabled:bg-gray-400"
-          >
-            {isLoading ? "Updating..." : "Update Password"}
-          </button>
+          <div className="space-y-3">
+            <button
+              type="submit"
+              form="changePasswordForm"
+              disabled={isLoading}
+              className="w-full rounded-lg bg-blue-800 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 disabled:cursor-not-allowed disabled:bg-gray-400"
+            >
+              {isLoading ? "Updating..." : "Update Password"}
+            </button>
+            <button
+              type="button"
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="w-full rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-4 focus:ring-gray-200"
+            >
+              Sign Out
+            </button>
+          </div>
         </form>
       </div>
-
       <ToastContainer />
     </>
   );

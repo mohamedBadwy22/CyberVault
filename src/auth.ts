@@ -107,7 +107,14 @@ export const authOption: NextAuthOptions = {
     signIn: "/login",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
+      if (trigger === "update" && session?.mustChangePassword === false) {
+        token.mustChangePassword = false;
+        if (token.user) {
+          (token.user as any).mustChangePassword = false;
+        }
+      }
+
       // Initial sign-in: store everything from authorize() in the JWT token
       if (user) {
         token.token = user.accessToken;

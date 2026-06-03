@@ -7,53 +7,58 @@ import type { NextRequest } from 'next/server'
 // The backend is the authoritative access control layer; this middleware is a UX guard only.
 const accessibility: Record<string, string[]> = {
   '/home': ['user', 'employee', 'admin'],
-  '/home/profile': ['user', 'employee', 'admin'],   // all roles own a profile
+  '/home/profile': ['user', 'employee', 'admin'],
   '/home/transactions': ['user', 'employee', 'admin'],
   '/home/manage-user': ['employee', 'admin'],
   '/home/register-user': ['employee', 'admin'],
   '/home/manage-employee': ['admin'],
   '/home/register-employee': ['admin'],
   '/home/dashboard': ['admin'],
+  '/change-password': ['user', 'employee', 'admin'],
 };
 
 // The only route accessible when mustChangePassword === true.
-const CHANGE_PASSWORD_PATH = '/home/profile';
+const CHANGE_PASSWORD_PATH = '/change-password';
 
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const encodedToken = await getToken({ req: request });
 
   if (encodedToken) {
-    // mustChangePassword guard — block all routes except the profile/change-password page.
+    // mustChangePassword guard — block all routes except the change-password page.
     const mustChangePassword = encodedToken?.mustChangePassword as boolean | undefined;
     if (mustChangePassword === true && pathname !== CHANGE_PASSWORD_PATH) {
       return NextResponse.redirect(new URL(CHANGE_PASSWORD_PATH, request.url));
     }
 
-    const userRole = encodedToken?.user?.role as string | undefined;
-    const allowedRoles = accessibility[pathname];
+    // Role-based access control for /home and /change-password routes
+    if (pathname.startsWith('/home') || pathname === '/change-password') {
+      const userRole = encodedToken?.user?.role as string | undefined;
+      const allowedRoles = accessibility[pathname];
 
-    if (!allowedRoles || !allowedRoles.includes(userRole!)) {
+      if (!allowedRoles || !allowedRoles.includes(userRole!)) {
+        return NextResponse.redirect(new URL('/not-found', request.url));
+      }
+    }
+    
+    // If authenticated user goes to login, redirect them to home
+    if (pathname === '/login') {
+      return NextResponse.redirect(new URL('/home', request.url));
+    }
+    
+    return NextResponse.next();
+  } else {
+    // Unauthenticated users
+    const isProtected = pathname.startsWith('/home') || pathname === '/change-password';
+    if (isProtected) {
       return NextResponse.redirect(new URL('/not-found', request.url));
     }
     return NextResponse.next();
-  } else if (pathname === '/login') {
-    return NextResponse.next();
-  } else {
-    return NextResponse.redirect(new URL('/not-found', request.url));
   }
 }
 
 export const config = {
   matcher: [
-    '/login',
-    '/home',
-    '/home/profile',
-    '/home/transactions',
-    '/home/manage-user',
-    '/home/register-user',
-    '/home/manage-employee',
-    '/home/register-employee',
-    '/home/dashboard',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 }

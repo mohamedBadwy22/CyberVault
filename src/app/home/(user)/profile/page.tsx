@@ -1,13 +1,12 @@
 "use client";
-import ChangePassword from "@/src/app/_components/ChangePassword/ChangePassword";
 import PersonalData from "@/src/app/_components/PersonalData/PersonalData";
 import { profileDataType } from "@/src/types/types";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 export default function Profile() {
   const [profileData, setProfileData] = useState<profileDataType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"profile" | "password">("profile");
 
   useEffect(() => {
     async function fetchProfileData() {
@@ -65,38 +64,24 @@ export default function Profile() {
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={() => setActiveTab("profile")}
-                className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors duration-200 ${
-                  activeTab === "profile"
-                    ? "bg-blue-700 text-white"
-                    : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
-                }`}
+                className="rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors duration-200 bg-blue-700 text-white"
               >
                 My Profile
               </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab("password")}
-                className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors duration-200 ${
-                  activeTab === "password"
-                    ? "bg-blue-700 text-white"
-                    : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
-                }`}
+              <Link
+                href="/change-password"
+                className="rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors duration-200 bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
               >
                 Change Password
-              </button>
+              </Link>
             </div>
 
-            {activeTab === "profile" ? (
-              profileData ? (
-                <PersonalData profileData={profileData} />
-              ) : (
-                <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-red-700">
-                  Unable to load profile data.
-                </div>
-              )
+            {profileData ? (
+              <PersonalData profileData={profileData} />
             ) : (
-              <ChangePassword />
+              <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-red-700">
+                Unable to load profile data.
+              </div>
             )}
           </div>
         </div>
