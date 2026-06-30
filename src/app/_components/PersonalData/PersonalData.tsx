@@ -1,6 +1,7 @@
 import Edit from "../Edit/Edit";
 import Delete from "../Delete/Delete";
 import { profileDataType } from "@/src/types/types";
+import { useState } from "react";
 
 export default function PersonalData({
   profileData,
@@ -9,10 +10,13 @@ export default function PersonalData({
   profileData: profileDataType | null;
   whoWeDelete?: string;
 }) {
+
+  const [makingSure, setMakingSure] = useState(false);
+
   return (
     <>
       <div
-        className={`w-full col-span-2 sm:col-span-1 rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:p-6`}
+        className={`w-full col-span-2 sm:col-span-1 rounded-lg border border-gray-200 bg-white p-4 shadow-sm md:p-6`}
       >
         <div className="mb-6 grid grid-cols-2 gap-4">
           <div className="col-span-2 lg:col-span-1">
@@ -134,14 +138,16 @@ export default function PersonalData({
             />
           </div>
 
-          <div className="col-span-2 flex flex-col md:flex-row justify-between gap-4 w-full mt-4">
+          <div className={`${makingSure ? "col-span-2 flex flex-col" : "col-span-2 flex flex-col xl:flex-row"} justify-between gap-4 w-full mt-4`}>
             {whoWeDelete ? (
-              <Delete whoWeDelete={whoWeDelete} id={profileData?.id} />
+              <Delete makingSure={makingSure} setMakingSure={setMakingSure} whoWeDelete={whoWeDelete} id={profileData?.id} />
             ) : (
               <></>
             )}
             <Edit />
           </div>
+
+
         </div>
       </div>
     </>

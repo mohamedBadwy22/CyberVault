@@ -20,7 +20,7 @@ export default function page() {
 
   return (
     <>
-      <div className="h-screen">
+      <div className="min-h-screen">
         <SearchForm isLoading={isLoading} setIsLoading={setIsLoading} />
 
       {foundSearch ? (

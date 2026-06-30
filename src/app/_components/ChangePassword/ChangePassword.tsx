@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast, ToastContainer } from "react-toastify";
 import * as zod from "zod";
-import { useSession, signOut, signIn } from "next-auth/react";
+import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { updatePasswordAction } from "@/src/app/change-password/actions";
 
@@ -200,16 +200,9 @@ export default function ChangePassword({ onSuccess }: { onSuccess?: () => void }
               type="submit"
               form="changePasswordForm"
               disabled={isLoading}
-              className="w-full rounded-lg bg-blue-800 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 disabled:cursor-not-allowed disabled:bg-gray-400"
+              className="w-full cursor-pointer rounded-lg bg-blue-800 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 disabled:cursor-not-allowed disabled:bg-gray-400"
             >
               {isLoading ? "Updating..." : "Update Password"}
-            </button>
-            <button
-              type="button"
-              onClick={() => signOut({ callbackUrl: "/login" })}
-              className="w-full rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-4 focus:ring-gray-200"
-            >
-              Sign Out
             </button>
           </div>
         </form>

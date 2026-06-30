@@ -139,7 +139,7 @@ export default function CreditTransaction({
 
           <button
             type="submit"
-            className="w-full rounded-lg bg-blue-800 px-5 py-2.5 text-sm font-medium text-black hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="w-full cursor-pointer rounded-lg bg-blue-800 px-5 py-2.5 text-sm font-medium text-black hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 disabled:bg-gray-400 disabled:cursor-not-allowed"
             disabled={isLoading}
           >
             {isLoading ? "Submitting..." : "Submit Credit"}

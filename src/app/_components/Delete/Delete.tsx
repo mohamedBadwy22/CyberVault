@@ -13,11 +13,15 @@ import { SearchResult } from "../../_context/SearchResult/SearchResult";
 export default function Delete({
   whoWeDelete,
   id,
+  makingSure,
+  setMakingSure,
 }: {
   whoWeDelete: string;
   id?: string;
+  makingSure: boolean;
+  setMakingSure: (makingSure: boolean) => void;
 }) {
-  const [makingSure, setMakingSure] = useState(false);
+  
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   // Fixed: use useContext hook, not createContext (which creates a new context object)

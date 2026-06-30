@@ -55,7 +55,7 @@ export default function Management({
       {isLoading ? (
         <Loader /> 
       ) : isFound ? (
-        <div className="container mx-auto px-4 py-8 grid grid-cols-2 gap-4">
+        <div className="container mx-auto px-2 py-8 grid grid-cols-2 gap-4">
           {/* User Information */}
           <PersonalData profileData={profileData} whoWeDelete={whoWeSearch} />
 
