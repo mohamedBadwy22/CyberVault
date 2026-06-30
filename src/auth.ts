@@ -24,25 +24,21 @@ export const authOption: NextAuthOptions = {
             }),
           });
 
-          // Extract the refreshToken cookie from the backend response and pass it to the browser
-          const setCookieHeaders = res.headers.getSetCookie ? res.headers.getSetCookie() : [];
-          const rawSetCookie = res.headers.get("set-cookie");
-          const cookiesArray = setCookieHeaders.length > 0 ? setCookieHeaders : (rawSetCookie ? rawSetCookie.split(/,(?=\s*[a-zA-Z0-9_-]+\s*=)/) : []);
-
+          // Extract the refreshToken cookie from the backend response and re-set
+          // it (httpOnly) on the Next.js domain so the browser never sees it.
+          const cookiesArray = res.headers.getSetCookie?.() ?? [];
           for (const cookieStr of cookiesArray) {
-            if (cookieStr.trim().startsWith("refreshToken=")) {
-              const match = cookieStr.match(/refreshToken=([^;]+)/);
-              if (match) {
-                const tokenValue = match[1];
-                const cookieStore = await cookies();
-                cookieStore.set("refreshToken", tokenValue, {
-                  httpOnly: true,
-                  secure: process.env.NODE_ENV === "production",
-                  sameSite: "strict",
-                  path: "/",
-                  maxAge: 30 * 24 * 60 * 60, // 30 days
-                });
-              }
+            const match = cookieStr.match(/^refreshToken=([^;]+)/);
+            if (match) {
+              const cookieStore = await cookies();
+              cookieStore.set("refreshToken", match[1], {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "strict",
+                path: "/",
+                maxAge: 30 * 24 * 60 * 60, // 30 days
+              });
+              break;
             }
           }
 

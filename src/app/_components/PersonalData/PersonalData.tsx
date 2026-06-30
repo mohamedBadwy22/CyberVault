@@ -1,8 +1,15 @@
 import Edit from "../Edit/Edit";
 import Delete from "../Delete/Delete";
 import Unlock from "../Unlock/Unlock";
+import { profileDataType } from "@/src/types/types";
 
-export default function PersonalData({ profileData, whoWeDelete }: any) {
+export default function PersonalData({
+  profileData,
+  whoWeDelete,
+}: {
+  profileData: profileDataType | null;
+  whoWeDelete?: string;
+}) {
   return (
     <>
       <div

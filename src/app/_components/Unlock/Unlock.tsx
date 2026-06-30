@@ -1,4 +1,3 @@
-"use strict";
 "use client";
 
 import { Unlock as UnlockIcon } from "lucide-react";
