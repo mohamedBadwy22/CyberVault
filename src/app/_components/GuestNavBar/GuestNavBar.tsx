@@ -84,8 +84,8 @@ export default function NavBar() {
 
           {/* NavBar Right Content */}
           <div className=" me-3 self-center">
-            <Button size={"lg"} className="cursor-pointer" variant="outline" onClick={()=> setActive(null)}>
-              <Link href={"/login"} className="text-xl">Login</Link>
+            <Button size={"lg"} className="cursor-pointer px-0" variant="outline" onClick={()=> setActive(null)}>
+              <Link href={"/login"} className="text-xl px-2.5">Login</Link>
             </Button>
           </div>
         </div>
