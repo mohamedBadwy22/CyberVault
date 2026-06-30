@@ -18,6 +18,13 @@ import { cookies } from 'next/headers';
 export default async function getMyToken(): Promise<string | undefined> {
   const cookieStore = await cookies();
 
+  // Prefer the freshly-rotated access token cached by refreshAccessToken().
+  // This stops getMyToken from returning the stale login token after a refresh,
+  // which would otherwise force a refresh on every request.
+  const cached = cookieStore.get('accessToken')?.value;
+  if (cached) return cached;
+
+  // Fallback: the access token seeded into the NextAuth session JWT at login.
   // Try production cookie name first (__Secure- prefix added on HTTPS)
   const encodedToken =
     cookieStore.get('__Secure-next-auth.session-token')?.value ??

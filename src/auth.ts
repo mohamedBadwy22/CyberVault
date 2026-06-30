@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { NextAuthOptions } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import refreshAccessToken from "./utilities/getRefreshToken";
 
 // Backend spec §4: BACKEND_URL already includes /api/v1
 const BACKEND_URL = (process.env.BACKEND_URL ?? "http://localhost:5000/api/v1").replace(/\/+$/, "");
@@ -115,7 +114,9 @@ export const authOption: NextAuthOptions = {
         }
       }
 
-      // Initial sign-in: store everything from authorize() in the JWT token
+      // Initial sign-in: store everything from authorize() in the JWT token.
+      // token.token is the access-token seed; getMyToken() reads it as a
+      // fallback until refreshAccessToken() caches a rotated one.
       if (user) {
         token.token = user.accessToken;
         token.mustChangePassword = user.mustChangePassword;
@@ -124,42 +125,10 @@ export const authOption: NextAuthOptions = {
         return token;
       }
 
-      // Subsequent requests: proactively refresh if the access token expires within 30s
-      // (access token is 10 min per spec §7.1; refresh token is 30 days)
-      if (Date.now() > (token.expiresAt as number) - 30_000) {
-        const newToken = await refreshAccessToken();
-        if (newToken) {
-          token.token = newToken;
-          try {
-            const payload = JSON.parse(
-              Buffer.from(newToken.split(".")[1], "base64").toString()
-            );
-            token.expiresAt = payload.exp * 1000;
-          } catch {
-            token.expiresAt = Date.now() + 10 * 60 * 1000;
-          }
-          token.error = undefined;
-
-          // Sync mustChangePassword from the new token payload (spec §7.2)
-          try {
-            const payload = JSON.parse(
-              Buffer.from(newToken.split(".")[1], "base64").toString()
-            );
-            if (typeof payload.mustChangePassword === "boolean") {
-              token.mustChangePassword = payload.mustChangePassword;
-              if (token.user) {
-                (token.user as Record<string, unknown>).mustChangePassword =
-                  payload.mustChangePassword;
-              }
-            }
-          } catch {
-            // Keep existing value on parse failure
-          }
-        } else {
-          token.error = "RefreshAccessTokenError";
-        }
-      }
-
+      // No refresh here: token rotation lives in a single place
+      // (backendFetch -> refreshAccessToken) where the rotated refresh cookie
+      // can actually be persisted. A jwt callback cannot set that cookie, so a
+      // refresh here would silently desync and trip TOKEN_REUSE_DETECTED.
       return token;
     },
 

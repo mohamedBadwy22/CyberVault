@@ -45,7 +45,47 @@ export default async function refreshAccessToken(): Promise<string | null> {
     // Backend spec §8.1 envelope: { success, data: { accessToken } }
     if (!body.success) return null;
 
-    return (body.data as { accessToken: string }).accessToken;
+    const accessToken = (body.data as { accessToken: string }).accessToken;
+
+    // Persist the ROTATED refreshToken cookie. The backend revokes the old
+    // refresh token on every /auth/refresh and issues a new one via Set-Cookie
+    // (spec §7.3). Without re-storing it, the next refresh reuses a revoked
+    // token -> TOKEN_REUSE_DETECTED -> the whole family is revoked.
+    const rotated = res.headers.getSetCookie?.() ?? [];
+    for (const cookieStr of rotated) {
+      const match = cookieStr.match(/^refreshToken=([^;]+)/);
+      if (match) {
+        try {
+          cookieStore.set('refreshToken', match[1], {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            path: '/',
+            maxAge: 30 * 24 * 60 * 60, // 30 days (spec §7.1)
+          });
+        } catch {
+          // Read-only context — all callers are route handlers/server actions,
+          // so this should never fire; degrade gracefully if it does.
+        }
+        break;
+      }
+    }
+
+    // Cache the fresh access token so getMyToken() stops returning the stale one
+    // and we don't refresh on every request (access-token TTL is 10 min, §7.1).
+    try {
+      cookieStore.set('accessToken', accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: '/',
+        maxAge: 600, // 10 minutes
+      });
+    } catch {
+      // Read-only context — ignore.
+    }
+
+    return accessToken;
   } catch {
     return null;
   }
