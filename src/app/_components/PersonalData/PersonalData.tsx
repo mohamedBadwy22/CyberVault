@@ -1,6 +1,5 @@
 import Edit from "../Edit/Edit";
 import Delete from "../Delete/Delete";
-import Unlock from "../Unlock/Unlock";
 import { profileDataType } from "@/src/types/types";
 
 export default function PersonalData({
@@ -137,10 +136,7 @@ export default function PersonalData({
 
           <div className="col-span-2 flex flex-col md:flex-row justify-between gap-4 w-full mt-4">
             {whoWeDelete ? (
-              <>
-                <Delete whoWeDelete={whoWeDelete} id={profileData?.id} />
-                <Unlock id={profileData?.id} />
-              </>
+              <Delete whoWeDelete={whoWeDelete} id={profileData?.id} />
             ) : (
               <></>
             )}

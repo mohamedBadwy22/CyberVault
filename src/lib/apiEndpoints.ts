@@ -17,7 +17,6 @@ export const API_ENDPOINTS = {
     create: '/users',
     update: (id: string | number) => `/users/${encodeURIComponent(String(id))}`,
     remove: (id: string | number) => `/users/${encodeURIComponent(String(id))}`,
-    unlock: (id: string | number) => `/users/${encodeURIComponent(String(id))}/unlock`,
   },
   employees: {
     create: '/employees',
