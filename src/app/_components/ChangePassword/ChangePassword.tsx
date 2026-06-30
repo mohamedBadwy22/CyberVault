@@ -44,7 +44,7 @@ const changePasswordSchema = zod
 
 type ChangePasswordFormValues = zod.infer<typeof changePasswordSchema>;
 
-export default function ChangePassword() {
+export default function ChangePassword({ onSuccess }: { onSuccess?: () => void }) {
   const [isLoading, setIsLoading] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -89,7 +89,13 @@ export default function ChangePassword() {
         });
       }
 
-      router.push("/home");
+      // Forced first-login flow (no onSuccess) lands on /home; the voluntary
+      // inline flow passes onSuccess to return to the profile tab in place.
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push("/home");
+      }
     } else {
       toast.error(response.error || "Failed to change password");
     }

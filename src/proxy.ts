@@ -31,6 +31,12 @@ export default async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL(CHANGE_PASSWORD_PATH, request.url));
     }
 
+    // SPEC-005: /change-password is reserved for forced first-login users.
+    // Everyone else changes their password inline on the profile page.
+    if (pathname === CHANGE_PASSWORD_PATH && mustChangePassword !== true) {
+      return NextResponse.redirect(new URL('/home/profile', request.url));
+    }
+
     // Role-based access control for /home and /change-password routes
     if (pathname.startsWith('/home') || pathname === '/change-password') {
       const userRole = encodedToken?.user?.role as string | undefined;

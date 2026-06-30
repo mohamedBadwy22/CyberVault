@@ -1,12 +1,13 @@
 "use client";
 import PersonalData from "@/src/app/_components/PersonalData/PersonalData";
+import ChangePassword from "@/src/app/_components/ChangePassword/ChangePassword";
 import { profileDataType } from "@/src/types/types";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 
 export default function Profile() {
   const [profileData, setProfileData] = useState<profileDataType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [tab, setTab] = useState<"profile" | "password">("profile");
 
   useEffect(() => {
     async function fetchProfileData() {
@@ -64,19 +65,31 @@ export default function Profile() {
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
-                className="rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors duration-200 bg-blue-700 text-white"
+                onClick={() => setTab("profile")}
+                className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors duration-200 ${
+                  tab === "profile"
+                    ? "bg-blue-700 text-white"
+                    : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
+                }`}
               >
                 My Profile
               </button>
-              <Link
-                href="/change-password"
-                className="rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors duration-200 bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
+              <button
+                type="button"
+                onClick={() => setTab("password")}
+                className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors duration-200 ${
+                  tab === "password"
+                    ? "bg-blue-700 text-white"
+                    : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
+                }`}
               >
                 Change Password
-              </Link>
+              </button>
             </div>
 
-            {profileData ? (
+            {tab === "password" ? (
+              <ChangePassword onSuccess={() => setTab("profile")} />
+            ) : profileData ? (
               <PersonalData profileData={profileData} />
             ) : (
               <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-red-700">
