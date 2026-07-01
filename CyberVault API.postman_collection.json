@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "aefd3036-b10b-40b5-a935-367e5ad82391",
     "name": "CyberVault API",
-    "description": "Complete API collection for the Bank System backend.\n\n## Setup\n1. Set the `baseUrl` variable to `http://localhost:5000` for local dev or your staging URL\n2. Run **Login** first — the collection auto-saves the access token to `accessToken` variable\n3. All protected routes use `{{accessToken}}` automatically via the collection Authorization header\n4. Refresh token is handled via HTTP-only cookie automatically by Postman\n\n## Variables\n- `baseUrl` — backend base URL\n- `accessToken` — set automatically after login\n- `testUserId` — set manually after creating a user\n- `testAccountNumber` — set manually after creating a user",
+    "description": "Complete API collection for the Bank System backend.\n\nThis file is the permanent, git-tracked source of truth for this collection (mirrored from the backend repo) — re-import it any time your Postman workspace loses it.\n\n## Setup\n1. `baseUrl` defaults to `https://api.cybervault.systems/api/v1` (prod) — point it at `http://localhost:5000/api/v1` for local dev against the backend\n2. Run **Login** first — the collection auto-saves the access token to `accessToken` variable\n3. All protected routes use `{{accessToken}}` automatically via the collection Authorization header\n4. Refresh token is handled via HTTP-only cookie automatically by Postman\n\n## Variables\n- `baseUrl` — backend base URL, including `/api/v1`\n- `accessToken` — set automatically after login\n- `testUserId` — set automatically after Create User\n- `testAccountNumber` — set automatically after Create User",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "48080139",
     "_collection_link": "https://go.postman.co/collection/48080139-aefd3036-b10b-40b5-a935-367e5ad82391?source=collection_link"
@@ -14,15 +14,15 @@
         {
           "name": "Health Check",
           "request": {
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "https://api.cybervault.systems/",
-              "protocol": "https",
+              "raw": "{{baseUrl}}/",
               "host": [
-                "api",
-                "cybervault",
-                "systems"
+                "{{baseUrl}}"
               ],
               "path": [
                 ""
@@ -704,15 +704,15 @@
         {
           "name": "All Error Codes",
           "request": {
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "https://api.cybervault.systems/",
-              "protocol": "https",
+              "raw": "{{baseUrl}}/",
               "host": [
-                "api",
-                "cybervault",
-                "systems"
+                "{{baseUrl}}"
               ],
               "path": [
                 ""
