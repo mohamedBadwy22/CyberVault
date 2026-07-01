@@ -16,16 +16,22 @@ export default function TransactionsPage() {
   const { data: session , status} = useSession();
   const router = useRouter();
 
-  if (searchResult === "" && session?.user?.role !== "user" && status !== "loading") {
-    router.push("/not-found");
-  }
-
   const [activeTab, setActiveTab] = useState<
     "debit" | "credit" | "transfer" | "history"
   >("debit");
   const [isLoading, setIsLoading] = useState(true);
   const [accountInfo, setAccountInfo] = useState<any | null>(null);
   const [isError, setIsError] = useState(false);
+
+  // ponytail: mount-only guard. admin/employee must have searched a user first.
+  // Kept out of render (was a render-phase router.push) so leaving to /home —
+  // which clears searchResult — can't retrigger a not-found redirect mid-navigation.
+  useEffect(() => {
+    if (status !== "loading" && searchResult === "" && session?.user?.role !== "user") {
+      router.push("/not-found");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
   useEffect(() => {
     async function fetchAccountNumber() {
