@@ -76,6 +76,22 @@ export const authOption: NextAuthOptions = {
             // Use fallback expiry
           }
 
+          // Overwrite any stale accessToken cache left by a previous user/session.
+          // getMyToken() reads this cookie first, so without overwriting it here a
+          // new login would keep using the previous user's token (cross-user bleed).
+          try {
+            const cookieStore = await cookies();
+            cookieStore.set("accessToken", accessToken, {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === "production",
+              sameSite: "strict",
+              path: "/",
+              maxAge: 600, // 10 minutes (access-token TTL, spec §7.1)
+            });
+          } catch {
+            // non-fatal
+          }
+
           return {
             // NextAuth User shape — accessToken stored here for JWT callback only
             id: String(user.id),
