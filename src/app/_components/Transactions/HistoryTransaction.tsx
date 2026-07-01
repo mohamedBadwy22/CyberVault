@@ -56,6 +56,7 @@ export default function HistoryTransaction({
       if (payload.ok) {
         setStatePreview("data");
         setTableRows(payload.data);
+        setIsFinished(payload.finished ?? false);
       } else {
         setIsFinished(payload.finished ?? false);
         setStatePreview("empty");
