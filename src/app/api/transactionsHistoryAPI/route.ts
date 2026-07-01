@@ -23,6 +23,7 @@ export async function POST(request: Request) {
     const {
       page = 1,
       filter = "All",
+      searchParam,
       startDate,
       endDate,
       minAmount,
@@ -40,9 +41,27 @@ export async function POST(request: Request) {
       ...(maxAmount !== undefined ? { maxAmount: String(maxAmount) } : {}),
     });
 
-    const { data, pagination } = await backendFetch<HistoryRecord[]>(
-      `/transactions/history?${params.toString()}`
-    );
+    // Default: caller's own history (spec §8.4 line 887).
+    // Admin/employee managing a user pass that user's bankUserId — resolve it to a
+    // userId and use the admin/employee-scoped endpoint (spec §8.4 line 888).
+    // Without this the endpoint returns the caller's (empty) own history.
+    let historyPath = `/transactions/history?${params.toString()}`;
+    if (searchParam) {
+      const lookup = new URLSearchParams({
+        bankUserId: String(searchParam).trim(),
+        limit: "1",
+        page: "1",
+      });
+      const { data: users } = await backendFetch<{ id: number }[]>(
+        `/users?${lookup.toString()}`
+      );
+      if (!users || users.length === 0) {
+        return NextResponse.json({ ok: false, finished: true, data: [] });
+      }
+      historyPath = `/transactions/history/${users[0].id}?${params.toString()}`;
+    }
+
+    const { data, pagination } = await backendFetch<HistoryRecord[]>(historyPath);
 
     if (!data || data.length === 0) {
       return NextResponse.json({ ok: false, finished: true, data: [] });

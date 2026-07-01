@@ -28,7 +28,12 @@ const FILTER_MAP: Record<string, string> = {
   Transfer: "transfer",
 };
 
-export default function HistoryTransaction() {
+export default function HistoryTransaction({
+  searchParam = "",
+}: {
+  // bankUserId of the managed user (admin/employee flow); empty = own history
+  searchParam?: string;
+}) {
   const [statePreview, setStatePreview] = useState<TableState>("loading");
   const [page, setPage] = useState(1);
   const [isFinished, setIsFinished] = useState(false);
@@ -41,7 +46,11 @@ export default function HistoryTransaction() {
       const req = await fetch("/api/transactionsHistoryAPI", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ page, filter: FILTER_MAP[filterValue] ?? "All" }),
+        body: JSON.stringify({
+          page,
+          filter: FILTER_MAP[filterValue] ?? "All",
+          searchParam,
+        }),
       });
       const payload = await req.json();
       if (payload.ok) {
@@ -54,7 +63,7 @@ export default function HistoryTransaction() {
     }
 
     fetchData();
-  }, [page, filterValue]);
+  }, [page, filterValue, searchParam]);
 
   return (
     <div className="space-y-4">

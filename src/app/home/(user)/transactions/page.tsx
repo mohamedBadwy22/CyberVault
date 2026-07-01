@@ -126,7 +126,7 @@ export default function TransactionsPage() {
             {activeTab === "debit" ? <DebitTransaction accountInfo={accountInfo} /> : <></>}
             {activeTab === "credit" ? <CreditTransaction accountInfo={accountInfo} /> : <></>}
             {activeTab === "transfer" ? <TransferTransaction accountInfo={accountInfo} /> : <></>}
-            {activeTab === "history" ? <HistoryTransaction /> : <></>}
+            {activeTab === "history" ? <HistoryTransaction searchParam={searchResult} /> : <></>}
           </div>
         </div>
       )}
