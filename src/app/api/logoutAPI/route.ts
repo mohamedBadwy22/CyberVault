@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { backendFetch, apiErrorResponse, ApiError } from "@/src/lib/backendClient";
 
 export async function POST() {
+  // Access + refresh tokens live inside the encrypted NextAuth session cookie,
+  // which the client clears via signOut() right after this call — so there is no
+  // separate token cookie to purge here (no cross-user bleed).
   try {
     const { data } = await backendFetch<{ message: string }>("/auth/logout", {
       method: "POST",
@@ -17,12 +19,5 @@ export async function POST() {
       { ok: false, error: errResponse.error },
       { status: httpStatus }
     );
-  } finally {
-    // Clear the local token cache regardless of the backend outcome. A failed or
-    // unreachable backend logout must never leave a valid token behind, or the
-    // next user on this browser inherits it (cross-user bleed).
-    const cookieStore = await cookies();
-    cookieStore.delete("accessToken");
-    cookieStore.delete("refreshToken");
   }
 }

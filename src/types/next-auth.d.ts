@@ -29,8 +29,9 @@ declare module "next-auth" {
 
 declare module "next-auth/jwt" {
 	interface JWT extends DefaultJWT {
-		/** Encrypted access token — server-side only. Never forward this to the session object. */
+		/** Raw access + refresh tokens — server-side only. Never forward these to the session object. */
 		token?: string
+		refreshToken?: string
 		user?: AppUserProfile
 		mustChangePassword?: boolean
 		expiresAt?: number

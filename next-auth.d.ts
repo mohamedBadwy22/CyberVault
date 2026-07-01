@@ -23,8 +23,9 @@ declare module "next-auth" {
 
   interface User {
     id: string;
-    // Raw access token — stored in JWT callback only, never forwarded to session
+    // Raw access + refresh tokens — stored in the JWT callback only, never forwarded to session
     accessToken: string;
+    refreshToken: string;
     mustChangePassword: boolean;
     expiresAt: number;
     user: {
@@ -40,8 +41,9 @@ declare module "next-auth" {
 
 declare module "next-auth/jwt" {
   interface JWT {
-    // Raw access token (server-side only, never sent to client)
+    // Raw access + refresh tokens (server-side only, never sent to client)
     token: string;
+    refreshToken: string;
     expiresAt: number;
     mustChangePassword: boolean;
     error?: string;

@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextAuthOptions } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
@@ -24,20 +23,15 @@ export const authOption: NextAuthOptions = {
             }),
           });
 
-          // Extract the refreshToken cookie from the backend response and re-set
-          // it (httpOnly) on the Next.js domain so the browser never sees it.
+          // Extract the refreshToken the backend issued via Set-Cookie. It is stored
+          // ONLY inside the encrypted NextAuth session JWT (via the jwt callback below),
+          // never as a plaintext cookie the browser can read.
+          let refreshToken = "";
           const cookiesArray = res.headers.getSetCookie?.() ?? [];
           for (const cookieStr of cookiesArray) {
             const match = cookieStr.match(/^refreshToken=([^;]+)/);
             if (match) {
-              const cookieStore = await cookies();
-              cookieStore.set("refreshToken", match[1], {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === "production",
-                sameSite: "strict",
-                path: "/",
-                maxAge: 30 * 24 * 60 * 60, // 30 days
-              });
+              refreshToken = match[1];
               break;
             }
           }
@@ -76,26 +70,13 @@ export const authOption: NextAuthOptions = {
             // Use fallback expiry
           }
 
-          // Overwrite any stale accessToken cache left by a previous user/session.
-          // getMyToken() reads this cookie first, so without overwriting it here a
-          // new login would keep using the previous user's token (cross-user bleed).
-          try {
-            const cookieStore = await cookies();
-            cookieStore.set("accessToken", accessToken, {
-              httpOnly: true,
-              secure: process.env.NODE_ENV === "production",
-              sameSite: "strict",
-              path: "/",
-              maxAge: 600, // 10 minutes (access-token TTL, spec §7.1)
-            });
-          } catch {
-            // non-fatal
-          }
-
           return {
-            // NextAuth User shape — accessToken stored here for JWT callback only
+            // NextAuth User shape — tokens stored here for the JWT callback only.
+            // No cross-user bleed: signOut clears the encrypted session cookie, and
+            // a fresh login overwrites token.token / token.refreshToken in the JWT.
             id: String(user.id),
             accessToken,
+            refreshToken,
             mustChangePassword,
             expiresAt,
             user: {
@@ -131,6 +112,7 @@ export const authOption: NextAuthOptions = {
       // fallback until refreshAccessToken() caches a rotated one.
       if (user) {
         token.token = user.accessToken;
+        token.refreshToken = user.refreshToken;
         token.mustChangePassword = user.mustChangePassword;
         token.expiresAt = user.expiresAt;
         token.user = user.user;
