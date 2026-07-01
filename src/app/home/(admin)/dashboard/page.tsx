@@ -9,11 +9,6 @@ const adminColumns: TableColumn[] = [
   { key: "role", label: "Role" },
   { key: "id", label: "ID" },
   { key: "email", label: "Email", cellClassName: "whitespace-nowrap" },
-  {
-    key: "accountNumber",
-    label: "Account Number",
-    cellClassName: "whitespace-nowrap",
-  },
 ];
 
 

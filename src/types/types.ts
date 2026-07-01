@@ -82,7 +82,6 @@ export type AdminRecord = {
   role: "admin" | "employee" | "user" ;
   id: string;
   email: string;
-  accountNumber: string | null;
 };
 
 

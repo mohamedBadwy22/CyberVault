@@ -25,7 +25,6 @@ export async function POST(request: Request) {
       name: string;
       email: string;
       role: string;
-      account?: { accountNumber: string };
     }[]>(`/users?${params.toString()}`);
 
     if (!data || data.length === 0) {
@@ -37,7 +36,6 @@ export async function POST(request: Request) {
       role: user.role as "admin" | "employee" | "user",
       id: user.bankUserId, // Map bankUserId to the display ID
       email: user.email,
-      accountNumber: user.account?.accountNumber || null,
     }));
 
     const isLastPage = pagination
