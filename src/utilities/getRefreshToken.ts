@@ -5,6 +5,21 @@ import { cookies } from 'next/headers';
 // Backend spec §4: BACKEND_URL already includes /api/v1
 const BACKEND_URL = (process.env.BACKEND_URL ?? 'http://localhost:5000/api/v1').replace(/\/+$/, '');
 
+// Single-flight lock. Concurrent callers sharing the SAME refresh token reuse one
+// in-flight /auth/refresh instead of each firing their own. The backend rotates
+// (revokes the old, issues a new) refresh token on every refresh, so two parallel
+// refreshes race: the second presents the just-revoked token -> TOKEN_REUSE_DETECTED
+// -> the whole family is burned and the user sees a spurious "token expired".
+//
+// Keyed by the refreshToken cookie VALUE (not global): same-user parallel requests
+// collide on the same key and share; different users have different cookies and
+// refresh independently, so no user ever receives another user's token.
+//
+// ponytail: in-process lock only. On a multi-instance serverless deploy two
+// requests can land on different instances and still race; the ceiling there is a
+// backend grace window that tolerates the immediately-prior refresh token.
+const inFlight = new Map<string, Promise<string | null>>();
+
 /**
  * Calls POST /api/v1/auth/refresh on the CyberVault backend.
  *
@@ -21,8 +36,25 @@ const BACKEND_URL = (process.env.BACKEND_URL ?? 'http://localhost:5000/api/v1').
  * Returns the new raw access token string on success, or null on any failure.
  */
 export default async function refreshAccessToken(): Promise<string | null> {
+  const cookieStore = await cookies();
+  const key = cookieStore.get('refreshToken')?.value ?? '';
+
+  const existing = inFlight.get(key);
+  if (existing) return existing;
+
+  const p = doRefresh(cookieStore);
+  inFlight.set(key, p);
   try {
-    const cookieStore = await cookies();
+    return await p;
+  } finally {
+    inFlight.delete(key);
+  }
+}
+
+async function doRefresh(
+  cookieStore: Awaited<ReturnType<typeof cookies>>
+): Promise<string | null> {
+  try {
     const cookieHeader = cookieStore
       .getAll()
       .map((c) => `${c.name}=${c.value}`)
