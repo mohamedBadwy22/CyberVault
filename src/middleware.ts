@@ -23,9 +23,9 @@ const accessibility: Record<string, string[]> = {
 // The only route accessible when mustChangePassword === true.
 const CHANGE_PASSWORD_PATH = '/change-password';
 
-export default async function proxy(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const encodedToken = await getToken({ req: request });
+  const encodedToken = await getToken({ req: request , secret: process.env.NEXTAUTH_SECRET });
   
 
   if (encodedToken) {
