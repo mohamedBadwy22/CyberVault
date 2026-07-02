@@ -35,7 +35,7 @@ export default function login() {
 
           {/* MODIFIED: asymmetric border-radius creates organic oval shape;
               rotate-[-8deg] inclines it; bg-blue-800/25 = brand color at 25% opacity */}
-          <div className="bg-blue-800/25 rotate-[-8deg] md:p-10 p-3 w-full rounded-[60%_40%_40%_60%_/_60%_60%_40%_40%]">
+          <div className="bg-blue-800/25 text-white rotate-[-8deg] md:p-10 p-3 w-full rounded-[60%_40%_40%_60%_/_60%_60%_40%_40%]">
 
             {/* MODIFIED: counter-rotate content so text stays upright inside the oval */}
             <div className="rotate-[8deg] flex flex-col gap-4">
@@ -57,7 +57,7 @@ export default function login() {
 
                 {/* Feature 1 — Security */}
                 <li className="flex items-center gap-3">
-                  <Shield className="w-4 h-4 shrink-0 text-blue-700" />
+                  <Shield className="w-4 h-4 shrink-0 text-white md:text-blue-700" />
                   <span className="md:text-gray-700 text-sm">
                     Bank-grade security protecting every transaction
                   </span>
@@ -65,7 +65,7 @@ export default function login() {
 
                 {/* Feature 2 — Banking services */}
                 <li className="flex items-center gap-3">
-                  <Landmark className="w-4 h-4 shrink-0 text-blue-700" />
+                  <Landmark className="w-4 h-4 shrink-0 text-white md:text-blue-700" />
                   <span className="md:text-gray-700 text-sm">
                     Full account management in one place
                   </span>
@@ -73,7 +73,7 @@ export default function login() {
 
                 {/* Feature 3 — Speed */}
                 <li className="flex items-center gap-3">
-                  <Zap className="w-4 h-4 shrink-0 text-blue-700" />
+                  <Zap className="w-4 h-4 shrink-0 text-white md:text-blue-700" />
                   <span className="md:text-gray-700 text-sm">
                     Instant transfers and real-time balance updates
                   </span>

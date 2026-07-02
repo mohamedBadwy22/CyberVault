@@ -2,6 +2,9 @@ import { getToken } from 'next-auth/jwt'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+
+const GUEST_ONLY_PATHS = ['/', '/about', '/contact', '/login'];
+
 // Route accessibility by role.
 // Per the backend spec §7.6, all authenticated roles can access their own profile.
 // The backend is the authoritative access control layer; this middleware is a UX guard only.
@@ -23,6 +26,7 @@ const CHANGE_PASSWORD_PATH = '/change-password';
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const encodedToken = await getToken({ req: request });
+  
 
   if (encodedToken) {
     // mustChangePassword guard — block all routes except the change-password page.
@@ -34,7 +38,12 @@ export default async function proxy(request: NextRequest) {
     // SPEC-005: /change-password is reserved for forced first-login users.
     // Everyone else changes their password inline on the profile page.
     if (pathname === CHANGE_PASSWORD_PATH && mustChangePassword !== true) {
-      return NextResponse.redirect(new URL('/home/profile', request.url));
+      return NextResponse.redirect(new URL('/home', request.url));
+    }
+
+    //If authenticated, block them from guest-only pages
+    if (GUEST_ONLY_PATHS.includes(pathname)) {
+      return NextResponse.redirect(new URL('/home', request.url));
     }
 
     // Role-based access control for /home and /change-password routes
@@ -47,13 +56,12 @@ export default async function proxy(request: NextRequest) {
       }
     }
     
-    // If authenticated user goes to login, redirect them to home
-    if (pathname === '/login') {
-      return NextResponse.redirect(new URL('/home', request.url));
-    }
-    
     return NextResponse.next();
-  } else {
+  } 
+  
+  
+  
+  else {
     // Unauthenticated users
     const isProtected = pathname.startsWith('/home') || pathname === '/change-password';
     if (isProtected) {
@@ -65,6 +73,6 @@ export default async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)'
   ],
 }

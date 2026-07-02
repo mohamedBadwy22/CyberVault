@@ -13,7 +13,7 @@ export default function Home() {
               From secure transactions to account management, our platform helps customers and institutions manage their finances with confidence and ease.
             </p>
             <a
-              href="#"
+              href="/login"
               className="inline-flex items-center justify-center px-5 py-3 mr-3 text-base font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 dark:focus:ring-primary-900"
             >
               Get started
@@ -31,7 +31,7 @@ export default function Home() {
               </svg>
             </a>
             <a
-              href="#"
+              href="/contact"
               className="inline-flex items-center justify-center px-5 py-3 text-base font-medium text-center text-white/90 border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-black focus:ring-4 focus:ring-gray-100 "
             >
               Speak to Sales
