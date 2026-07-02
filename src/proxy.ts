@@ -7,7 +7,7 @@ import type { NextRequest } from 'next/server'
 // The backend is the authoritative access control layer; this middleware is a UX guard only.
 const accessibility: Record<string, string[]> = {
   '/home': ['user', 'employee', 'admin'],
-  '/home/profile': ['user', 'employee', 'admin'],
+  '/home/profile': ['user'],
   '/home/transactions': ['user', 'employee', 'admin'],
   '/home/manage-user': ['employee', 'admin'],
   '/home/register-user': ['employee', 'admin'],
