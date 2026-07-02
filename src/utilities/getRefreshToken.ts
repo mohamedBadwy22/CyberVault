@@ -20,6 +20,18 @@ const BACKEND_URL = (process.env.BACKEND_URL ?? 'http://localhost:5000/api/v1').
 // backend grace window that tolerates the immediately-prior refresh token.
 const inFlight = new Map<string, Promise<string | null>>();
 
+// After a refresh resolves we keep its result cached for this long instead of
+// deleting immediately. Two requests can carry the SAME pre-rotation refresh
+// cookie (React StrictMode double-fires effects in dev; any concurrent page load
+// fires several backendFetch calls at once) — each request has its own cookie
+// snapshot, so the second can never see the rotated token. If we evicted on
+// resolve, the second fires its own /auth/refresh with the now-revoked token ->
+// TOKEN_REUSE_DETECTED -> the whole family is burned. Caching the result lets the
+// duplicate reuse the already-rotated access token instead.
+// ponytail: 15s in-process grace window; multi-instance still needs a backend
+// grace window (see doRefresh comment above).
+const REFRESH_GRACE_MS = 15_000;
+
 /**
  * Calls POST /api/v1/auth/refresh on the CyberVault backend.
  *
@@ -46,11 +58,13 @@ export default async function refreshAccessToken(): Promise<string | null> {
 
   const p = doRefresh(token, refreshToken);
   inFlight.set(refreshToken, p);
-  try {
-    return await p;
-  } finally {
-    inFlight.delete(refreshToken);
-  }
+  // Keep the resolved result cached briefly (don't evict on resolve) so a
+  // concurrent duplicate holding the same pre-rotation refresh cookie reuses it
+  // instead of re-refreshing the now-revoked token. See REFRESH_GRACE_MS above.
+  p.finally(() => {
+    setTimeout(() => inFlight.delete(refreshToken), REFRESH_GRACE_MS);
+  });
+  return p;
 }
 
 async function doRefresh(
@@ -68,9 +82,9 @@ async function doRefresh(
       },
     });
 
+    const body = await res.json();
     if (!res.ok) return null;
 
-    const body = await res.json();
     // Backend spec §8.1 envelope: { success, data: { accessToken } }
     if (!body.success) return null;
 

@@ -1,9 +1,9 @@
 # SPEC-001 — Refresh-token rotation persistence & single refresh path
 
 **Priority:** P0 (critical — this is the reported `access token expired` bug)
-**Status:** proposed
+**Status:** ✅ completed (2026-07-02)
 **Affected files:** `src/utilities/getRefreshToken.ts`, `src/lib/backendClient.ts`,
-`src/utilities/getMyToken.ts`, `src/auth.ts`
+`src/utilities/getMyToken.ts`, `src/auth.ts`, `src/utilities/sessionToken.ts`
 
 ---
 
@@ -139,3 +139,32 @@ window that tolerates the immediately-prior token for a few seconds.
 4. DevTools → Application → Cookies: confirm `refreshToken` and `accessToken`
    are `HttpOnly` and absent from JS (`document.cookie` shows neither).
 5. `grep -rn "refreshAccessToken" src` → import only in `backendClient.ts`.
+
+## 8. Resolution (as implemented — 2026-07-02)
+
+The persistence design differs from §4.1/§4.2: instead of separate plaintext
+`refreshToken` / `accessToken` cookies, **both tokens live inside the single
+encrypted NextAuth session JWT** (`src/utilities/sessionToken.ts`
+`readSessionToken`/`writeSessionToken`). `refreshAccessToken()` rotates the
+access token and the revoked-and-reissued refresh token in place and re-encrypts
+the whole cookie. This keeps the browser from ever holding a decodable token
+(stronger than §4.2) while still persisting rotation. §4.3 done — `auth.ts` no
+longer refreshes; `backendClient.ts` is the only path.
+
+### 8.1 Residual concurrency bug (§5) — fixed
+The "accepted limitation" in §5 was **not** benign in practice. React StrictMode
+double-fires effects in dev, so a page load after expiry fired two concurrent
+`backendFetch` calls, **both carrying the same pre-rotation refresh cookie**
+(each request has its own cookie snapshot, so neither can see the other's
+rotated token). The single-flight lock only deduped *temporally overlapping*
+refreshes — it evicted on resolve — so the second call fired its own
+`/auth/refresh` with the already-revoked token → `TOKEN_REUSE_DETECTED` → the
+whole family was burned after one expiry.
+
+**Fix (`src/utilities/getRefreshToken.ts`):** the single-flight lock now keeps
+each resolved refresh cached for a 15s grace window (`REFRESH_GRACE_MS`) instead
+of deleting on resolve. A late duplicate holding the same token reuses the
+already-rotated access token instead of re-refreshing a revoked one. Root-cause
+fix in the shared function → protects every `backendFetch` caller, not just the
+dashboard. Multi-instance deploys still need a backend grace window (noted in
+`doRefresh`).
